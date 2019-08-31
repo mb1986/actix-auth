@@ -1,20 +1,22 @@
+use std::marker::PhantomData;
+
 use actix_web::web::ServiceConfig;
 
 use crate::auth_handler::auth_handler_config;
-use crate::user_account::AccountService;
+use crate::user_account::AccountServiceEx;
 
-pub struct AuthConfig<T> where T: AccountService + 'static {
+pub struct AuthConfig<T: AccountServiceEx + 'static> {
     path: &'static str,
     session_ttl: i64,
-    s: T,
+    user: PhantomData<T>,
 }
 
-impl<T> AuthConfig<T> where T: AccountService {
-    pub fn new(s: T) -> Self {
+impl<T: AccountServiceEx> AuthConfig<T> {
+    pub fn new() -> Self {
         AuthConfig {
             path: "/auth",
             session_ttl: 86400,
-            s: s,
+            user: PhantomData,
         }
     }
 
@@ -30,7 +32,6 @@ impl<T> AuthConfig<T> where T: AccountService {
 
     pub fn configure(self) -> impl Fn(&mut ServiceConfig) -> () {
         move |cfg| {
-            cfg.data(self.s.clone());
             auth_handler_config::<T>(cfg);
         }
     }
