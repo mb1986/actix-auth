@@ -1,0 +1,20 @@
+[package]
+name = "actix-auth"
+version = "0.1.0"
+authors = ["Michał Blinkiewicz <michal.blinkiewicz@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+# log = "0.4.8"
+# env_logger = "0.6.2"
+actix-web = { version = "1.0", default-features = false }
+actix-session = "0.2"
+# actix-redis = { git = "https://github.com/mb1986/actix-redis" }
+serde = "1.0.99"
+chrono = "0.4"
+futures = "0.1.28"
+otpauth = "0.3.0"
+
+[dev-dependencies]
+actix-http = "0.2.9"
+actix-http-test = "0.2.4"
