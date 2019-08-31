@@ -14,7 +14,3 @@ serde = "1.0.99"
 chrono = "0.4"
 futures = "0.1.28"
 otpauth = "0.3.0"
-
-[dev-dependencies]
-actix-http = "0.2.9"
-actix-http-test = "0.2.4"

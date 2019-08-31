@@ -1,14 +1,16 @@
 use actix_session::Session;
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder, web::Json};
 
-use crate::user_account::AccountServiceEx;
+use crate::user_account::AccountService;
+use crate::model::AuthRequest;
 
 // use super::{Auth, AuthSession};
 
-fn sign_in<T>(_session: Session, conn: T::Conn) -> impl Responder where T: AccountServiceEx {
+fn sign_in<T>(req: Json<AuthRequest>, _session: Session, conn: T::Conn) -> impl Responder where T: AccountService {
     // let u = T::find_user(&s, "username", "password");
-    let u = T::find_user("", "", &conn);
-    println!("User id: {}", u);
+    let result = T::can_authenticate("", "", &conn);
+    println!("Can authenticate: {:?}", result);
+    println!("Req: {:?}", *req);
     // session
     //     .authenticate("mb")
     //     .map(|_| HttpResponse::NoContent().finish())
@@ -24,8 +26,7 @@ fn sign_in<T>(_session: Session, conn: T::Conn) -> impl Responder where T: Accou
 // fn info(auth: Auth) -> impl Responder {
 //     HttpResponse::Ok().body(auth.user_id)
 // }
-
-pub fn auth_handler_config<T>(cfg: &mut web::ServiceConfig) where T: AccountServiceEx + 'static {
+pub fn auth_handler_config<T>(cfg: &mut web::ServiceConfig) where T: AccountService + 'static {
     cfg.service(
         web::scope("/auth").service(
             web::resource("")
