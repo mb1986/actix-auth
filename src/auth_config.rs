@@ -3,15 +3,15 @@ use std::marker::PhantomData;
 use actix_web::web::ServiceConfig;
 
 use crate::auth_handler::auth_handler_config;
-use crate::user_account::AccountService;
+use crate::auth_service::AuthService;
 
-pub struct AuthConfig<T: AccountService + 'static> {
+pub struct AuthConfig<T: AuthService + 'static> {
     path: &'static str,
     session_ttl: i64,
     user: PhantomData<T>,
 }
 
-impl<T: AccountService> AuthConfig<T> {
+impl<T: AuthService> AuthConfig<T> {
     pub fn new() -> Self {
         AuthConfig {
             path: "/auth",

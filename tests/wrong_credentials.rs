@@ -1,9 +1,9 @@
 use actix_web::dev::{Payload, Service};
-use actix_web::http::header::ContentType;
+use actix_web::http::{header::ContentType, StatusCode};
 use actix_web::test::{block_on, init_service, TestRequest};
 use actix_web::{App, Error, FromRequest, HttpRequest};
 
-use actix_auth::{AccountService, AuthConfig};
+use actix_auth::{AuthConfig, AuthService};
 
 struct User;
 
@@ -19,16 +19,22 @@ impl FromRequest for Connection {
     }
 }
 
-impl AccountService for User {
+impl AuthService for User {
     type Conn = Connection;
+    type Error = Error;
+    type Future = Result<bool, Self::Error>;
 
-    fn can_authenticate(_username: &str, _password: &str, _: &Self::Conn) -> bool {
-        true
+    fn can_authenticate(username: &str, password: &str, _: &Self::Conn) -> Self::Future {
+        if username == "test_user" && password == "test_pass" {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 }
 
 #[test]
-fn configuration_test() {
+fn wrong_credentials_test() {
     let mut app = init_service(
         App::new().configure(
             AuthConfig::<User>::new()
@@ -38,13 +44,12 @@ fn configuration_test() {
         ),
     );
 
-    let payload = r#"{"username":"test_user","password":"test_pass","type":"user"}"#;
-    // let payload = r#"{"code":"123456","type":"totp"}"#;
+    let payload = r#"{"username":"wrong_user","password":"wrong_pass","type":"user"}"#;
     let req = TestRequest::post()
         .uri("/auth")
         .set(ContentType::json())
         .set_payload(payload)
         .to_request();
     let res = block_on(app.call(req)).unwrap();
-    assert!(res.status().is_success());
+    assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
 }
