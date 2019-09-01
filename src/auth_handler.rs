@@ -7,7 +7,7 @@ use actix_web::{error::ErrorInternalServerError, web, web::Json, Error, HttpResp
 use crate::auth_service::AuthService;
 use crate::model::AuthRequest;
 
-// use super::{Auth, AuthSession};
+use crate::auth_session::AuthSession;
 
 fn sign_in<T: AuthService>(
     req: Json<AuthRequest>,
@@ -22,8 +22,7 @@ fn sign_in<T: AuthService>(
                 .and_then(move |can| {
                     if can {
                         session
-                            .set("user_id", "mb")
-                            // .authenticate("mb")
+                            .authenticate("mb")
                             .map(|_| HttpResponse::NoContent().finish())
                             .map_err(|err| ErrorInternalServerError(err))
                     } else {
