@@ -2,8 +2,12 @@ use actix_web::dev::{Payload, Service};
 use actix_web::http::{header::ContentType, StatusCode};
 use actix_web::test::{block_on, init_service, TestRequest};
 use actix_web::{App, Error, FromRequest, HttpRequest};
+use serde::{Deserialize, Serialize};
 
 use actix_auth::{AuthConfig, AuthService};
+
+#[derive(Serialize, Deserialize)]
+struct UserId(String);
 
 struct User;
 
@@ -21,14 +25,15 @@ impl FromRequest for Connection {
 
 impl AuthService for User {
     type Conn = Connection;
+    type UserId = UserId;
     type Error = Error;
-    type Future = Result<bool, Self::Error>;
+    type Future = Result<Option<Self::UserId>, Self::Error>;
 
-    fn can_authenticate(username: &str, password: &str, _: &Self::Conn) -> Self::Future {
+    fn authenticate(username: &str, password: &str, _: &Self::Conn) -> Self::Future {
         if username == "test_user" && password == "test_pass" {
-            Ok(true)
+            Ok(Some(UserId("test_user_id".to_string())))
         } else {
-            Ok(false)
+            Ok(None)
         }
     }
 }
