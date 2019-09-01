@@ -24,12 +24,12 @@ impl FromRequest for Connection {
 }
 
 impl AuthService for User {
-    type Conn = Connection;
-    type UserId = UserId;
+    type Context = Connection;
+    type UserData = UserId;
     type Error = Error;
-    type Future = Result<Option<Self::UserId>, Self::Error>;
+    type Future = Result<Option<Self::UserData>, Self::Error>;
 
-    fn authenticate(username: &str, password: &str, _: &Self::Conn) -> Self::Future {
+    fn authenticate(username: &str, password: &str, _: &Self::Context) -> Self::Future {
         if username == "test_user" && password == "test_pass" {
             Ok(Some(UserId("test_user_id".to_string())))
         } else {

@@ -6,7 +6,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use crate::auth_session::AuthSession;
 
 pub struct Auth<T: Serialize + DeserializeOwned> {
-    pub user_id: T,
+    pub user_data: T,
 }
 
 impl<T: Serialize + DeserializeOwned> FromRequest for Auth<T> {
@@ -17,9 +17,9 @@ impl<T: Serialize + DeserializeOwned> FromRequest for Auth<T> {
     fn from_request(req: &HttpRequest, payload: &mut dev::Payload) -> Self::Future {
         let maybe_session = Session::from_request(req, payload);
         if let Ok(session) = maybe_session {
-            if let Ok(Some(user_id)) = session.get_user_id() {
+            if let Ok(Some(user_data)) = session.get_user_data() {
                 AuthSession::<T>::refresh_ttl(&session)
-                    .and_then(|()| Ok(Auth { user_id }))
+                    .and_then(|()| Ok(Auth { user_data }))
                     .map_err(ErrorInternalServerError)
             } else {
                 Err(ErrorUnauthorized("unauthorized"))

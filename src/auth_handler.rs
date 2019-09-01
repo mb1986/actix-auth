@@ -9,16 +9,16 @@ use crate::auth_service::AuthService;
 use crate::auth_session::AuthSession;
 use crate::model::AuthRequest;
 
-fn sign_in<T: AuthService>(
+fn handle_sign_in<T: AuthService>(
     req: Json<AuthRequest>,
     session: Session,
-    conn: T::Conn,
+    ctx: T::Context,
 ) -> Box<dyn Future<Item = HttpResponse, Error = Error>> {
     match &*req {
         AuthRequest::Credentials(ref credentials) => Box::new(
-            T::authenticate(&credentials.username, &credentials.password, &conn)
+            T::authenticate(&credentials.username, &credentials.password, &ctx)
                 .into_future()
-                .map_err(|err| err.into())
+                .map_err(T::Error::into)
                 .and_then(move |maybe_user_id| {
                     match &maybe_user_id {
                         Some(ref user_id) => session
@@ -34,20 +34,17 @@ fn sign_in<T: AuthService>(
     }
 }
 
-fn sign_out<T: AuthService>(_: Auth<T::UserId>, session: Session) -> impl Responder {
+fn handle_sign_out<T: AuthService>(_: Auth<T::UserData>, session: Session) -> impl Responder {
     session.purge();
     HttpResponse::NoContent().finish()
 }
 
-pub fn auth_handler_config<T>(cfg: &mut web::ServiceConfig)
-where
-    T: AuthService + 'static,
-{
+pub fn auth_handler_config<T: AuthService + 'static>(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/auth").service(
             web::resource("")
-                .route(web::post().to_async(sign_in::<T>))
-                .route(web::delete().to(sign_out::<T>)),
+                .route(web::post().to_async(handle_sign_in::<T>))
+                .route(web::delete().to(handle_sign_out::<T>)),
         ),
     );
 }

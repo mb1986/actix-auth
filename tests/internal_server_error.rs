@@ -24,12 +24,12 @@ impl FromRequest for Connection {
 }
 
 impl AuthService for User {
-    type Conn = Connection;
-    type UserId = UserId;
+    type Context = Connection;
+    type UserData = UserId;
     type Error = Error;
-    type Future = Result<Option<Self::UserId>, Self::Error>;
+    type Future = Result<Option<Self::UserData>, Self::Error>;
 
-    fn authenticate(_username: &str, _password: &str, _: &Self::Conn) -> Self::Future {
+    fn authenticate(_username: &str, _password: &str, _: &Self::Context) -> Self::Future {
         Err(Error::from(()))
     }
 }
