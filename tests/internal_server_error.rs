@@ -25,9 +25,9 @@ impl FromRequest for Connection {
 
 impl AuthService for User {
     type Context = Connection;
-    type UserData = UserId;
+    type SessionUserData = UserId;
     type Error = Error;
-    type Future = Result<Option<Self::UserData>, Self::Error>;
+    type Future = Result<Option<Self::SessionUserData>, Self::Error>;
 
     fn authenticate(_username: &str, _password: &str, _: &Self::Context) -> Self::Future {
         Err(Error::from(()))

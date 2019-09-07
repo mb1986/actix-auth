@@ -2,7 +2,7 @@ use actix_session::Session;
 use actix_web::{error::ErrorUnauthorized, Result};
 use serde::{de::DeserializeOwned, Serialize};
 
-const SESSION_USER_DATA: &str = "user";
+const SESSION_USER_DATA: &str = "user_data";
 
 pub trait AuthSession<T: Serialize + DeserializeOwned> {
     fn authenticate(&self, user_data: &T) -> Result<()>;

@@ -34,7 +34,7 @@ fn handle_sign_in<T: AuthService>(
     }
 }
 
-fn handle_sign_out<T: AuthService>(_: Auth<T::UserData>, session: Session) -> impl Responder {
+fn handle_sign_out<T: AuthService>(_: Auth<T::SessionUserData>, session: Session) -> impl Responder {
     session.purge();
     HttpResponse::NoContent().finish()
 }

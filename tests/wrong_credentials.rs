@@ -25,9 +25,9 @@ impl FromRequest for Connection {
 
 impl AuthService for User {
     type Context = Connection;
-    type UserData = UserId;
+    type SessionUserData = UserId;
     type Error = Error;
-    type Future = Result<Option<Self::UserData>, Self::Error>;
+    type Future = Result<Option<Self::SessionUserData>, Self::Error>;
 
     fn authenticate(username: &str, password: &str, _: &Self::Context) -> Self::Future {
         if username == "test_user" && password == "test_pass" {
