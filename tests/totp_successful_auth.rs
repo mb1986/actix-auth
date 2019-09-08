@@ -82,7 +82,6 @@ fn successful_auth_test() {
             .configure(
                 AuthConfig::<User, UserId>::new()
                     .path("auth")
-                    .session_ttl(259200)
                     .configure(),
             ),
     );

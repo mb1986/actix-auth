@@ -2,7 +2,9 @@ use futures::future::Future;
 use futures::IntoFuture;
 
 use actix_session::Session;
-use actix_web::{error::ErrorInternalServerError, web, web::Json, Error, HttpResponse, Responder};
+use actix_web::{
+    error::ErrorInternalServerError, web, web::Data, web::Json, Error, HttpResponse, Responder,
+};
 use serde::{de::DeserializeOwned, Serialize};
 
 #[cfg(feature = "totp")]
@@ -10,6 +12,7 @@ use chrono::Utc;
 #[cfg(feature = "totp")]
 use otpauth::TOTP;
 
+use crate::auth_config::AuthConfigInner;
 use crate::auth_extractor::Auth;
 use crate::auth_service::{AuthData, AuthService};
 use crate::auth_session::AuthSession;
@@ -19,6 +22,7 @@ fn handle_sign_in<T, U>(
     req: Json<AuthRequest>,
     session: Session,
     ctx: T::Context,
+    config: Data<AuthConfigInner>,
 ) -> Box<dyn Future<Item = HttpResponse, Error = Error>>
 where
     T: AuthService<U>,
@@ -49,9 +53,7 @@ where
                             .into_future()
                             .map_err(T::Error::into)
                             .and_then(move |maybe_auth_data| match &maybe_auth_data {
-                                Some(ref auth_data) => {
-                                    auth_with_totp(auth_data, &code, &session)
-                                }
+                                Some(ref auth_data) => auth_with_totp(auth_data, &code, &session),
                                 None => Err(HttpResponse::Unauthorized().finish().into()),
                             })
                     }),
@@ -118,13 +120,13 @@ where
     HttpResponse::NoContent().finish()
 }
 
-pub fn auth_handler_config<T, U>(cfg: &mut web::ServiceConfig)
+pub fn auth_handler_config<T, U>(cfg: &mut web::ServiceConfig, auth_config: AuthConfigInner)
 where
     T: AuthService<U> + 'static,
     U: DeserializeOwned + Serialize + 'static,
 {
     cfg.service(
-        web::scope("/auth").service(
+        web::scope(auth_config.path).data(auth_config).service(
             web::resource("")
                 .route(web::post().to_async(handle_sign_in::<T, U>))
                 .route(web::delete().to(handle_sign_out::<T, U>)),
