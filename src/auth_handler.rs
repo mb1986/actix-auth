@@ -1,4 +1,4 @@
-use futures::future::{ok, Future};
+use futures::future::Future;
 use futures::IntoFuture;
 
 use actix_session::Session;
@@ -22,56 +22,90 @@ fn handle_sign_in<T, U>(
 ) -> Box<dyn Future<Item = HttpResponse, Error = Error>>
 where
     T: AuthService<U>,
-    U: DeserializeOwned + Serialize,
+    U: DeserializeOwned + Serialize + 'static,
 {
     match &*req {
         AuthRequest::Credentials(ref credentials) => Box::new(
             T::authenticate(&credentials.username, &credentials.password, &ctx)
                 .into_future()
                 .map_err(T::Error::into)
-                .and_then(move |maybe_auth_data| {
-                    match &maybe_auth_data {
-                        Some(ref auth_data) => session
-                            .authenticate(auth_data.get_session_data())
-                            .map(|_| {
-                                #[cfg(feature = "totp")]
-                                return HttpResponse::Unauthorized().finish();
-
-                                #[cfg(not(feature = "totp"))]
-                                return HttpResponse::NoContent().finish();
-                            })
-                            .map_err(|err| ErrorInternalServerError(err)),
-                        None => Ok(HttpResponse::Unauthorized().finish()),
-                    }
-                    .into_future()
+                .and_then(move |maybe_auth_data| match &maybe_auth_data {
+                    Some(ref auth_data) => auth_with_credentials(auth_data, &session),
+                    None => Err(HttpResponse::Unauthorized().finish().into()),
                 }),
         ),
-        #[allow(unused_variables)]
+        #[cfg(feature = "totp")]
         AuthRequest::TotpCode(ref totp_code) => {
-            #[cfg(feature = "totp")]
-            {
-                // TODO: check session...
-                // T::get_totp_secret
-                let secret = "secret";
-                let totp = TOTP::new(secret);
-                return Box::new(ok(
-                    if totp.verify(
-                        totp_code.code.parse().unwrap_or(0),
-                        30,
-                        Utc::now().timestamp() as u64,
-                    ) {
-                        HttpResponse::NoContent().finish()
-                    } else {
-                        HttpResponse::Unauthorized().finish()
-                    },
-                ));
-            }
-            #[cfg(not(feature = "totp"))]
-            {
-                return Box::new(ok(HttpResponse::BadRequest().finish()));
-            }
+            let code = totp_code.code.clone();
+            Box::new(
+                AuthSession::<U>::get_auth_data(&session)
+                    .into_future()
+                    .and_then(move |maybe_auth_session| match maybe_auth_session {
+                        Some(auth_session) => Ok(auth_session),
+                        None => Err(HttpResponse::Unauthorized().finish().into()),
+                    })
+                    .and_then(move |auth_session| {
+                        T::get_auth_data(&auth_session.auth_data, &ctx)
+                            .into_future()
+                            .map_err(T::Error::into)
+                            .and_then(move |maybe_auth_data| match &maybe_auth_data {
+                                Some(ref auth_data) => {
+                                    auth_with_totp(auth_data, &code, &session)
+                                }
+                                None => Err(HttpResponse::Unauthorized().finish().into()),
+                            })
+                    }),
+            )
         }
     }
+}
+
+fn auth_with_credentials<U>(
+    auth_data: &impl AuthData<U>,
+    session: &Session,
+) -> Result<HttpResponse, Error>
+where
+    U: DeserializeOwned + Serialize,
+{
+    session
+        .authenticate(auth_data.get_session_data())
+        .map(|()| {
+            #[cfg(feature = "totp")]
+            return if auth_data.is_totp_active() {
+                HttpResponse::Unauthorized().finish()
+            } else {
+                HttpResponse::NoContent().finish()
+            };
+
+            #[cfg(not(feature = "totp"))]
+            return HttpResponse::NoContent().finish();
+        })
+        .map_err(|err| ErrorInternalServerError(err))
+}
+
+#[cfg(feature = "totp")]
+fn auth_with_totp<U>(
+    auth_data: &impl AuthData<U>,
+    totp_code: &str,
+    session: &impl AuthSession<U>,
+) -> Result<HttpResponse, Error>
+where
+    U: DeserializeOwned + Serialize,
+{
+    let secret = auth_data.get_totp_secret();
+    let totp = TOTP::new(secret);
+    Ok(
+        if totp.verify(
+            totp_code.parse().unwrap_or(0),
+            30,
+            Utc::now().timestamp() as u64,
+        ) {
+            session.totp_verify()?;
+            HttpResponse::NoContent().finish()
+        } else {
+            HttpResponse::Unauthorized().finish()
+        },
+    )
 }
 
 fn handle_sign_out<T, U>(_: Auth<U>, session: Session) -> impl Responder

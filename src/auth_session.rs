@@ -23,7 +23,7 @@ impl<T> Deref for AuthSessionData<T> {
 }
 
 pub trait AuthSession<T: Serialize + DeserializeOwned> {
-    fn authenticate(&self, user_data: &T) -> Result<()>;
+    fn authenticate(&self, auth_data: &T) -> Result<()>;
     #[cfg(feature = "totp")]
     fn totp_verify(&self) -> Result<()>;
     fn get_auth_data(&self) -> Result<Option<AuthSessionData<T>>>;

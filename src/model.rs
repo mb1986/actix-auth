@@ -6,6 +6,7 @@ pub struct Credentials {
     pub password: String,
 }
 
+#[cfg(feature = "totp")]
 #[derive(Deserialize, Debug)]
 pub struct TotpCode {
     pub code: String,
@@ -17,6 +18,7 @@ pub enum AuthRequest {
     #[serde(rename = "user")]
     Credentials(Credentials),
 
+    #[cfg(feature = "totp")]
     #[serde(rename = "totp")]
     TotpCode(TotpCode),
 }
