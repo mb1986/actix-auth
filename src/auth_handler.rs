@@ -87,7 +87,7 @@ where
 fn auth_with_totp<U>(
     auth_data: &impl AuthData<U>,
     totp_code: &str,
-    session: &impl AuthSession<U>,
+    session: &Session,
 ) -> Result<HttpResponse, Error>
 where
     U: DeserializeOwned + Serialize,
@@ -100,9 +100,10 @@ where
             30,
             Utc::now().timestamp() as u64,
         ) {
-            session.totp_verify()?;
+            AuthSession::<U>::totp_verify(session)?;
             HttpResponse::NoContent().finish()
         } else {
+            session.purge();
             HttpResponse::Unauthorized().finish()
         },
     )
