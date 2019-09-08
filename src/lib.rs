@@ -7,4 +7,4 @@ mod model;
 
 pub use crate::auth_config::AuthConfig;
 pub use crate::auth_extractor::Auth;
-pub use crate::auth_service::AuthService;
+pub use crate::auth_service::{AuthService, AuthData};

@@ -1,22 +1,25 @@
 use std::marker::PhantomData;
 
 use actix_web::web::ServiceConfig;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::auth_handler::auth_handler_config;
 use crate::auth_service::AuthService;
 
-pub struct AuthConfig<T: AuthService + 'static> {
+pub struct AuthConfig<T: AuthService<U> + 'static, U: DeserializeOwned + Serialize + 'static> {
     path: &'static str,
     session_ttl: i64,
-    user: PhantomData<T>,
+    auth: PhantomData<T>,
+    data: PhantomData<U>,
 }
 
-impl<T: AuthService> AuthConfig<T> {
+impl<T: AuthService<U>, U: DeserializeOwned + Serialize> AuthConfig<T, U> {
     pub fn new() -> Self {
         AuthConfig {
             path: "/auth",
             session_ttl: 86400,
-            user: PhantomData,
+            auth: PhantomData,
+            data: PhantomData,
         }
     }
 
@@ -32,7 +35,7 @@ impl<T: AuthService> AuthConfig<T> {
 
     pub fn configure(self) -> impl Fn(&mut ServiceConfig) -> () {
         move |cfg| {
-            auth_handler_config::<T>(cfg);
+            auth_handler_config::<T, U>(cfg);
         }
     }
 }

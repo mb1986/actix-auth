@@ -4,12 +4,16 @@ version = "0.1.0"
 authors = ["Michał Blinkiewicz <michal.blinkiewicz@gmail.com>"]
 edition = "2018"
 
+[features]
+totp = ["otpauth"]
+
 [dependencies]
 # log = "0.4.8"
 # env_logger = "0.6.2"
 actix-web = { version = "^1.0.7", default-features = false }
 actix-session = "^0.2.0"
 serde = "^1.0.99"
-chrono = "^0.4.8"
-futures = "^0.1.28"
-otpauth = "~0.3.0"
+chrono = "^0.4.9"
+futures = "^0.1.29"
+
+otpauth = { version = "~0.3.0", optional = true }
